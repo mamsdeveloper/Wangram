@@ -1,0 +1,8 @@
+{
+	"name": "Doctor 3",
+	"keyboard_btns": {
+		"🏠Go to menu": "$nav_root",
+		"🔙Go back": "$nav_back"
+	},
+	"media": ["media/doctor_3.png"]
+}
