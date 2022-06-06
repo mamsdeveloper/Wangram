@@ -1,8 +1,0 @@
-{
-	"keyboard_btns": {
-		"Next pages": "$child_pages",
-		"📞Order call": "$custom",
-		"🏠Go to menu": "$nav_root",
-		"🔙Go back": "$nav_back"
-	}
-}
