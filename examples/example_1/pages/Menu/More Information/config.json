@@ -1,8 +1,0 @@
-{
-	"keyboard_btns": {
-		"Next pages": "$child_pages",
-		"🏠Go to menu": "$nav_root",
-		"🔙Go back": "$nav_back"
-	},
-	"inline_btns": { "See our website": ["$url", "https://aleks-dent.ru"], "Sign up": ["$login", "https://some.com"]}
-}

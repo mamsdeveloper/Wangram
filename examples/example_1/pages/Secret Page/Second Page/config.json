@@ -1,0 +1,6 @@
+{
+	"keyboard_btns": {
+		"🏠Go to menu": "$nav_root",
+		"🔙Go back": "$nav_back"
+	}
+}

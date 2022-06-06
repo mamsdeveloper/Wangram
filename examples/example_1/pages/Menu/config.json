@@ -2,20 +2,6 @@
 	"keyboard_btns": {
 		"Next pages": "$child_pages",
 		"Secret page": "$path:Secret Page.Second Page",
-		"📞Order call": "$custom",
-		"🏠Go to menu": "$nav_root",
-		"🔙Go back": "$nav_back"
-	},
-	"media": [
-		["img", "/media/marker.png"],
-		["doc", "media/doctor.jpg"],
-		["video", "media/preview.mp4"],
-		["img", "https://cat4you.ru/wp-content/uploads/8/3/1/831fd48c68d835195989e6a2d516095c.jpeg"],
-		["audio", "media/hello.wav"],
-		["doc", "media//hello.wav"],
-		["media_group", [
-			["audio", "media/hello.wav"], 
-			["video", "media/preview.mp4"]
-		]]
-	]
+		"📞Order call": "$custom"
+	}
 }

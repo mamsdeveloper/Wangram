@@ -4,7 +4,7 @@ from typing import Any
 
 from telebot.types import (InlineKeyboardButton, InputMediaAudio,
                            InputMediaDocument, InputMediaPhoto,
-                           InputMediaVideo, KeyboardButton)
+                           InputMediaVideo, KeyboardButton, LoginUrl)
 
 
 class Page:
@@ -35,10 +35,7 @@ class Page:
 		self.update_media(config.get('media', []))
 
 	def __repr__(self) -> str:
-		return (f'Page(name="{self.name}", text="{self.text[:10]}...")')
-
-	def __getitem__(self, key):
-		return self.child_pages[key]
+		return (f'Page(name="{self.name}", text="{self.text[:10]}...", child_pages={list(self.child_pages.keys())})')
 
 	def update_keyboard_btns(self, btns: dict[str, str]):
 		"""Update page keyboard buttons with telebot KeyboardButtons relative to it`s types.
@@ -82,7 +79,6 @@ class Page:
 			$path: button to go to specific page. Args: [path: list[str]]
 			$child_pages: many buttons to go to child pages of current page
 			$url: link button. Args: [link: str]
-			$login: authorization user on website. Args: [url: str] 
 			$custom: buttons for custom user action. Args: [callback_data: str]
 
 		Args:
@@ -111,14 +107,13 @@ class Page:
 			elif '$url' in btn_args[0]:
 				self.inline_btns.append(
 					InlineKeyboardButton(btn_text, url=btn_args[1]))
-			elif '$login' in btn_args[0]:
-				self.inline_btns.append(
-					InlineKeyboardButton(btn_text, login_url=btn_args[1]))
 			elif '$custom' in btn_args[0]:
 				self.inline_btns.append(
 					InlineKeyboardButton(btn_text, callback_data=(btn_args[1] if len(btn_args) > 1 else btn_text)))
 			elif '$pay' in btn_args[0]:
 				pass  # Not implemented
+			elif '$login' in btn_args[0]:
+				pass # Not implemented
 			else:
 				print(f'Unknown button type "{btn_args[0]}" at "{self.name}" page')
 
@@ -147,12 +142,12 @@ class Page:
 	def from_folder(cls, folder_path: str) -> 'Page':
 		name = os.path.split(folder_path)[1]
 		config_path = os.path.join(folder_path, 'config.json')
-		with open(config_path, 'r') as f:
+		with open(config_path, 'rb') as f:
 			config = json.load(f)
 
-		text_path = os.path.join(folder_path, 'test.txt')
+		text_path = os.path.join(folder_path, 'text.txt')
 		if os.path.exists(text_path):
-			with open(text_path, 'r') as f:
+			with open(text_path, 'r', encoding='utf-8') as f:
 				text = f.read()
 		else:
 			text = ''

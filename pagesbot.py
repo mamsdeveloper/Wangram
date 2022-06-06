@@ -16,12 +16,13 @@ class PagesBot(TeleBot):
 	):
 		super().__init__(token, parse_mode, threaded, skip_pending, num_threads, next_step_backend,
                    reply_backend, exception_handler, last_update_id, suppress_middleware_exceptions)
-
-		if 'root_page_path' in config:
-			root_page_path = config['root_page_path']
-		else:
-			os.path.join('./pages', os.listdir('./pages')[0])
-		self.root_page = Page.from_folder(root_page_path)
+		
+		pages_path = config['pages_path']
+		self.pages = {
+			page_name: Page.from_folder(os.path.join(pages_path, page_name)) 
+			for page_name in os.listdir(pages_path)
+		}
+		self.root_page = self.pages[config['root_page']]
 		self.curr_page = self.root_page
 
 		if 'users_db_path' in config:
@@ -71,7 +72,7 @@ class PagesBot(TeleBot):
 		path.pop(0)
 		while path:
 			try:
-				page = page[path.pop(0)]
+				page = page.child_pages[path.pop(0)]
 			except KeyError:
 				return None
 
@@ -94,17 +95,16 @@ class PagesBot(TeleBot):
 		text = text.format(**self.__dict__)
 
 		if page.inline_btns and page.keyboard_btns:
-			markup = types.ReplyKeyboardMarkup()
+			markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
 			markup.add(*page.keyboard_btns)
-			message = self.send_message(self.curr_user.id, '&&', reply_markup=markup)
-			self.delete_message(self.curr_user.id, message.id)
+			self.send_message(self.curr_user.id, '🐶', reply_markup=markup)
 			markup = types.InlineKeyboardMarkup()
 			markup.add(*page.inline_btns)
 		elif page.inline_btns:
 			markup = types.InlineKeyboardMarkup()
 			markup.add(*page.inline_btns)
 		elif page.keyboard_btns:
-			markup = types.ReplyKeyboardMarkup()
+			markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
 			markup.add(*page.keyboard_btns)
 
 		text, markup = self.display_addons(text, markup)
@@ -163,14 +163,15 @@ class PagesBot(TeleBot):
 			self.curr_user.id,
 			'Sorry, not such command or page',
 		)
+		self.display_page(self.curr_page)
 
 	def _message_handler(self, message: types.Message):
 		self.init_userdata(message.from_user)
 		text = message.text
 
-		if child_page := self.check_child_page(text) is not None:
+		if (child_page := self.check_child_page(text)) is not None:
 			self.go_forward(child_page)
-		elif page_path := self.check_page_path(text) is not None:
+		elif (page_path := self.check_page_path(text)) is not None:
 			self.go_path(page_path)
 		elif text == self.curr_page.nav_back:
 			self.go_back()
@@ -184,14 +185,15 @@ class PagesBot(TeleBot):
 			self.curr_user.id,
 			'Sorry, not such command or page',
 		)
+		self.display_page(self.curr_page)
 
 	def _query_handler(self, call: types.CallbackQuery):
 		self.init_userdata(call.from_user)
 		data = call.data
 
-		if child_page := self.check_child_page(data) is not None:
+		if (child_page := self.check_child_page(data)) is not None:
 			self.go_forward(child_page)
-		elif page_path := self.check_page_path(data) is not None:
+		elif (page_path := self.check_page_path(data)) is not None:
 			self.go_path(page_path)
 		elif data == self.curr_page.nav_back:
 			self.go_back()
@@ -206,7 +208,7 @@ if __name__ == '__main__':
 	# change buttons definition cause inline markup can be only on type
 	# and message can consist only one type of Buttons
 
-	bot = PagesBot({'root_page_path': './examples/example_1/pages/Menu'},
+	bot = PagesBot({'pages_path': './examples/example_1/pages', 'root_page': 'Menu'},
 	               '5155114149:AAEoOZL9Q9VZrFLYMW6qva_rrxYg-2J_njs')
 	# bot.init_userdata(types.User(11, True, 'Mike'))
 	bot.infinity_polling()

@@ -1,0 +1,23 @@
+{
+	"keyboard_btns": {
+		"🏠Go to menu": "$nav_root",
+		"🔙Go back": "$nav_back"
+	},
+	"media": [
+		["video", "media/corgi_video.mp4"],
+		[
+			"img",
+			"https://cat4you.ru/wp-content/uploads/8/3/1/831fd48c68d835195989e6a2d516095c.jpeg"
+		],
+		["audio", "media/corgi_barking.mp3"],
+		["doc", "media//corgi_barking.mp3"],
+		[
+			"media_group",
+			[
+				["img", "media/corgi1.jpg"],
+				["img", "media/corgi2.jpeg"],
+				["img", "media/corgi3.jpg"]
+			]
+		]
+	]
+}
