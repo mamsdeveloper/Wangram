@@ -68,13 +68,9 @@ class PagesBot(TeleBot):
 				return path_name
 
 	def get_page_by_path(self, path: list[str]) -> Page:
-		page = self.root_page
-		path.pop(0)
+		page = self.pages.get(path.pop(0), None)
 		while path:
-			try:
-				page = page.child_pages[path.pop(0)]
-			except KeyError:
-				return None
+			page = page.child_pages.get(path.pop(0), None)
 
 		return page
 
@@ -150,7 +146,7 @@ class PagesBot(TeleBot):
 		with open(self.users_db_path, 'w') as f:
 			json.dump(users, f)
 
-	def drop_userdata(self, user_id: int):
+	def drop_userdata(self):
 		with open(self.users_db_path, 'r') as f:
 			users = json.load(f)
 			users.pop(str(self.curr_user.id))
