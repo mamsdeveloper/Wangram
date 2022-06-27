@@ -111,15 +111,19 @@ class PagesBot(TeleBot):
 		)
 
 		media_senders = {
-			types.InputMediaPhoto: self.send_photo,
-			types.InputMediaVideo: self.send_video,
-			types.InputMediaAudio: self.send_audio,
-			types.InputMediaDocument: self.send_document,
-			list: self.send_media_group
+			'photo': self.send_photo,
+			'video': self.send_video,
+			'audio': self.send_audio,
+			'document': self.send_document,
+			'media_group': self.send_media_group
 		}
-		for media in page.media:
-			media_senders[type(media)](self.curr_user.id, media.media)
 
+		for media in page.media:
+			media_senders[media.type](
+				self.curr_user.id,
+				media.data
+			)
+			
 	def display_addons(self, text: str, markup: REPLY_MARKUP_TYPES) -> tuple[str, REPLY_MARKUP_TYPES]:
 		return text, markup
 
@@ -200,25 +204,7 @@ class PagesBot(TeleBot):
 
 
 if __name__ == '__main__':
-	# TODO:
-	# change buttons definition cause inline markup can be only on type
-	# and message can consist only one type of Buttons
-
 	bot = PagesBot({'pages_path': './examples/example_1/pages', 'root_page': 'Menu'},
 	               '5155114149:AAEoOZL9Q9VZrFLYMW6qva_rrxYg-2J_njs')
-	# bot.init_userdata(types.User(11, True, 'Mike'))
-	bot.infinity_polling()
-
-	# bot.go_forward('About our doctors')
-	# print(bot.curr_page.rec_print())
-	# bot.go_forward('Doctor 1')
-	# print(bot.curr_page.rec_print())
-	# bot.go_back()
-	# print(bot.curr_page.rec_print())
-
-	# print(bot.get_page_by_path(['Menu']))
-	# print(bot.get_page_by_path(['Menu', 'About our doctors']))
-	# print(bot.get_page_by_path(['Menu', 'About our doctors', 'Doctor 1']))
-	# print(bot.get_page_by_path(['Menu', 'About our doctors', 'Non-exist']))
-
-	# # bot.root_page.rec_print()
+	bot.remove_webhook()
+	bot.polling()

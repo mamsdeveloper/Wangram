@@ -1,10 +1,33 @@
+from io import BufferedReader
 import json
 import os
-from typing import Any
+import re
+from typing import Any, Union
 
 from telebot.types import (InlineKeyboardButton, InputMediaAudio,
                            InputMediaDocument, InputMediaPhoto,
                            InputMediaVideo, KeyboardButton, LoginUrl)
+
+
+URL_PATTERN = r'^https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&\/=]*)'
+
+
+class Media():
+	def __init__(self, type: str, data: str) -> None:
+		self.type = type
+		self._data = data
+
+	def __repr__(self) -> str:
+		return f'Media(type="{self.type}", data={self._data})'
+
+	@property
+	def data(self) -> Union[str, BufferedReader, list[BufferedReader]]:
+		if re.match(URL_PATTERN, self._data) is not None:
+			return self._data
+		elif isinstance(self._data, list):
+			return [m.data for m in self._data]
+		else:
+			return open(self._data, 'rb')
 
 
 class Page:
@@ -35,7 +58,7 @@ class Page:
 		self.update_media(config.get('media', []))
 
 	def __repr__(self) -> str:
-		return (f'Page(name="{self.name}", text="{self.text[:10]}...", child_pages={list(self.child_pages.keys())})')
+		return f'Page(name="{self.name}", text="{self.text[:10]}...", child_pages={list(self.child_pages.keys())})'
 
 	def update_keyboard_btns(self, btns: dict[str, str]):
 		"""Update page keyboard buttons with telebot KeyboardButtons relative to it`s types.
@@ -117,21 +140,15 @@ class Page:
 			else:
 				print(f'Unknown button type "{btn_args[0]}" at "{self.name}" page')
 
-	def update_media(self, media: list[list[str, Any]]):
-		media_types = {
-			'img': InputMediaPhoto,
-			'video': InputMediaVideo,
-			'audio': InputMediaAudio,
-			'doc': InputMediaDocument
-		}
+	def update_media(self, media: list[Media]):
 		for media_type, media_data in media:
 			if media_type == 'media_group':
 				group = []
 				for media_type, media_data in media_data:
-					group.append(media_types[media_type](media_data))
+					group.append(Media(media_type, media_data))
 				self.media.append(group)
 			else:
-				self.media.append(media_types[media_type](media_data))
+				self.media.append(Media(media_type, media_data))
 
 	def rec_print(self, counter=0):
 		print('    ' * counter + str(self))
