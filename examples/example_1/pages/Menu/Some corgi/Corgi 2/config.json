@@ -3,5 +3,5 @@
 		"🏠Go to menu": "$nav_root",
 		"🔙Go back": "$nav_back"
 	},
-	"media": [["img", "media/corgi2.jpeg"]]
+	"media": [["photo", "examples/example_1/media/corgi2.jpeg"]]
 }
