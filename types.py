@@ -1,31 +1,42 @@
-from io import BufferedReader
 import json
 import os
 import re
+from io import BufferedReader
 from typing import Any, Union
 
-from telebot.types import (InlineKeyboardButton, InputMediaAudio,
+from aiogram.types import (InputMediaAnimation, InputMediaAudio,
                            InputMediaDocument, InputMediaPhoto,
-                           InputMediaVideo, KeyboardButton, LoginUrl)
+                           InputMediaVideo, KeyboardButton, InlineKeyboardButton)
 
 
 URL_PATTERN = r'^https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&\/=]*)'
 
 
 class Media():
-	def __init__(self, type: str, data: str) -> None:
+	media_types = {
+		'photo': InputMediaPhoto,
+		'video': InputMediaVideo,
+		'animation': InputMediaAnimation,
+		'audio': InputMediaAudio,
+		'document': InputMediaDocument
+	}
+
+	def __init__(self, type: str, data: Union[str, list[list[str, str]]]) -> None:
 		self.type = type
-		self._data = data
+		if self.type == 'media_group':
+			self._data = [Media(*m) for m in data]
+		else:
+			self._data = data
 
 	def __repr__(self) -> str:
 		return f'Media(type="{self.type}", data={self._data})'
 
 	@property
 	def data(self) -> Union[str, BufferedReader, list[BufferedReader]]:
+		if self.type == 'media_group':
+			return [self.media_types[m.type](media=m.data) for m in self._data]
 		if re.match(URL_PATTERN, self._data) is not None:
 			return self._data
-		elif isinstance(self._data, list):
-			return [m.data for m in self._data]
 		else:
 			return open(self._data, 'rb')
 
@@ -136,19 +147,13 @@ class Page:
 			elif '$pay' in btn_args[0]:
 				pass  # Not implemented
 			elif '$login' in btn_args[0]:
-				pass # Not implemented
+				pass  # Not implemented
 			else:
 				print(f'Unknown button type "{btn_args[0]}" at "{self.name}" page')
 
 	def update_media(self, media: list[Media]):
 		for media_type, media_data in media:
-			if media_type == 'media_group':
-				group = []
-				for media_type, media_data in media_data:
-					group.append(Media(media_type, media_data))
-				self.media.append(group)
-			else:
-				self.media.append(Media(media_type, media_data))
+			self.media.append(Media(media_type, media_data))
 
 	def rec_print(self, counter=0):
 		print('    ' * counter + str(self))
@@ -189,7 +194,7 @@ class User():
 
 
 if __name__ == '__main__':
-	page = Page.from_folder('./examples/example_1/pages/Menu')
+	page = Page.from_folder('./examples/example_1/pages/Secret Page')
 	print('Parsed pages:\n')
 	page.rec_print()
 
