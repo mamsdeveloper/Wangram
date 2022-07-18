@@ -1,25 +1,29 @@
+# :TODO
+# - test current commit
+# - comment all
+
+
 import json
 import os
 from typing import Any
 
-from telebot import TeleBot, REPLY_MARKUP_TYPES
-from telebot import types
+from aiogram import Bot, Dispatcher, executor, filters, types
+from aiogram.bot.api import TELEGRAM_PRODUCTION
 
 from wangram.types import Page, User
 
 
-class PagesBot(TeleBot):
+class PagesBot(Bot):
 	def __init__(
-		self, config: dict[str, str], token, parse_mode=None, threaded=True, skip_pending=False,
-		num_threads=2, next_step_backend=None, reply_backend=None, exception_handler=None,
-		last_update_id=0, suppress_middleware_exceptions=False
+		self, config: dict[str, str], token, loop=None, connections_limit=None, proxy=None, proxy_auth=None,
+		validate_token=None, parse_mode=None, disable_web_page_preview=None, timeout=None, server=TELEGRAM_PRODUCTION
 	):
-		super().__init__(token, parse_mode, threaded, skip_pending, num_threads, next_step_backend,
-                   reply_backend, exception_handler, last_update_id, suppress_middleware_exceptions)
-		
+		super().__init__(token, loop, connections_limit, proxy, proxy_auth,
+                   validate_token, parse_mode, disable_web_page_preview, timeout, server)
+
 		pages_path = config['pages_path']
 		self.pages = {
-			page_name: Page.from_folder(os.path.join(pages_path, page_name)) 
+			page_name: Page.from_folder(os.path.join(pages_path, page_name))
 			for page_name in os.listdir(pages_path)
 		}
 		self.root_page = self.pages[config['root_page']]
@@ -31,29 +35,31 @@ class PagesBot(TeleBot):
 			self.users_db_path = os.path.join('./users.json')
 
 		self.curr_user = None
-		self.register_message_handler(self._message_handler)
+		self.dp = Dispatcher(self)
+		self.dp.register_message_handler(self._message_handler)
+		self.dp.register_callback_query_handler(self._query_handler)
 
-	def go_home(self):
+	async def go_home(self):
 		page = self.curr_page
 		while page.root_page is not None:
 			page = page.root_page
 
-		self.update_page(page)
+		await self.update_page(page)
 
-	def go_back(self):
+	async def go_back(self):
 		if self.curr_page.root_page is not None:
-			self.update_page(self.curr_page.root_page)
+			await self.update_page(self.curr_page.root_page)
 
-	def go_forward(self, page_name: str):
+	async def go_forward(self, page_name: str):
 		page = self.curr_page.child_pages.get(page_name, None)
 		if page is not None:
-			self.update_page(page)
+			await self.update_page(page)
 
-	def go_path(self, path_name: str):
+	async def go_path(self, path_name: str):
 		path = self.curr_page.pages_pathes.get(path_name, None)
 		if path is not None:
 			page = self.get_page_by_path(path)
-			self.update_page(page)
+			await self.update_page(page)
 
 	def check_child_page(self, page_name: str) -> str:
 		for child_page in self.curr_page.child_pages:
@@ -74,7 +80,7 @@ class PagesBot(TeleBot):
 
 		return page
 
-	def update_page(self, page: Page):
+	async def update_page(self, page: Page):
 		self.curr_page = page
 
 		page_path = [page.name]
@@ -84,16 +90,16 @@ class PagesBot(TeleBot):
 			page_ = page_.root_page
 
 		self.update_userdata(page_path=page_path)
-		self.display_page(page)
+		await self.display_page(page)
 
-	def display_page(self, page: Page):
+	async def display_page(self, page: Page):
 		text = page.name if not page.text else page.text
 		text = text.format(**self.__dict__)
 
 		if page.inline_btns and page.keyboard_btns:
 			markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
 			markup.add(*page.keyboard_btns)
-			self.send_message(self.curr_user.id, '🐶', reply_markup=markup)
+			await self.send_message(self.curr_user.id, '🐶', reply_markup=markup)
 			markup = types.InlineKeyboardMarkup()
 			markup.add(*page.inline_btns)
 		elif page.inline_btns:
@@ -104,7 +110,7 @@ class PagesBot(TeleBot):
 			markup.add(*page.keyboard_btns)
 
 		text, markup = self.display_addons(text, markup)
-		self.send_message(
+		await self.send_message(
 			self.curr_user.id,
 			text,
 			reply_markup=markup
@@ -113,18 +119,20 @@ class PagesBot(TeleBot):
 		media_senders = {
 			'photo': self.send_photo,
 			'video': self.send_video,
+			'animation': self.send_animation,
 			'audio': self.send_audio,
 			'document': self.send_document,
 			'media_group': self.send_media_group
 		}
 
 		for media in page.media:
-			media_senders[media.type](
+			print(media.type, media.data)
+			await media_senders[media.type](
 				self.curr_user.id,
 				media.data
 			)
-			
-	def display_addons(self, text: str, markup: REPLY_MARKUP_TYPES) -> tuple[str, REPLY_MARKUP_TYPES]:
+
+	def display_addons(self, text: str, markup: Any) -> tuple[str, Any]:
 		return text, markup
 
 	def init_userdata(self, user: types.User):
@@ -158,53 +166,53 @@ class PagesBot(TeleBot):
 		with open(self.users_db_path, 'w') as f:
 			json.dump(users, f)
 
-	def custom_handler(self, message: types.Message):
-		self.send_message(
+	async def custom_handler(self, message: types.Message):
+		await self.send_message(
 			self.curr_user.id,
 			'Sorry, not such command or page',
 		)
-		self.display_page(self.curr_page)
+		await self.display_page(self.curr_page)
 
-	def _message_handler(self, message: types.Message):
+	async def _message_handler(self, message: types.Message):
 		self.init_userdata(message.from_user)
 		text = message.text
 
 		if (child_page := self.check_child_page(text)) is not None:
-			self.go_forward(child_page)
+			await self.go_forward(child_page)
 		elif (page_path := self.check_page_path(text)) is not None:
-			self.go_path(page_path)
+			await self.go_path(page_path)
 		elif text == self.curr_page.nav_back:
-			self.go_back()
+			await self.go_back()
 		elif text == self.curr_page.nav_root:
-			self.go_home()
+			await self.go_home()
 		else:
-			self.custom_handler(message)
+			await self.custom_handler(message)
 
-	def custom_query_handler(self, call: types.CallbackQuery):
-		self.send_message(
+	async def custom_query_handler(self, call: types.CallbackQuery):
+		await self.send_message(
 			self.curr_user.id,
 			'Sorry, not such command or page',
 		)
-		self.display_page(self.curr_page)
+		await self.display_page(self.curr_page)
 
-	def _query_handler(self, call: types.CallbackQuery):
+	async def _query_handler(self, call: types.CallbackQuery):
 		self.init_userdata(call.from_user)
 		data = call.data
 
 		if (child_page := self.check_child_page(data)) is not None:
-			self.go_forward(child_page)
+			await self.go_forward(child_page)
 		elif (page_path := self.check_page_path(data)) is not None:
-			self.go_path(page_path)
+			await self.go_path(page_path)
 		elif data == self.curr_page.nav_back:
-			self.go_back()
+			await self.go_back()
 		elif data == self.curr_page.nav_root:
-			self.go_home()
+			await self.go_home()
 		else:
-			self.custom_handler(call)
+			await self.custom_handler(call)
 
 
 if __name__ == '__main__':
 	bot = PagesBot({'pages_path': './examples/example_1/pages', 'root_page': 'Menu'},
 	               '5155114149:AAEoOZL9Q9VZrFLYMW6qva_rrxYg-2J_njs')
-	bot.remove_webhook()
-	bot.polling()
+	
+	executor.start_polling(bot.dp, skip_updates=True)

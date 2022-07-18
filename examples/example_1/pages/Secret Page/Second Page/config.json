@@ -2,5 +2,15 @@
 	"keyboard_btns": {
 		"🏠Go to root": "$nav_root",
 		"🔙Go back": "$nav_back"
-	}
+	},
+	"media": [
+		[
+			"media_group",
+			[
+				["photo", "examples/example_1/media/corgi2.jpeg"],
+				["photo", "examples/example_1/media/corgi1.jpg"],
+				["photo", "examples/example_1/media/corgi3.jpg"]
+			]
+		]
+	]
 }
